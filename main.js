@@ -178,7 +178,10 @@ ipcMain.handle('mail:search', (_e, opts) => mail.search(opts || {}));
 ipcMain.handle('mail:attachment', (_e, id, name, mode) => mail.attachment(String(id || ''), String(name || ''), mode === 'open' ? 'open' : 'text'));
 
 /* Titan AI (Groq) */
-ipcMain.handle('ai:chat', (_e, payload) => ai.chat(payload || {}));
+ipcMain.handle('ai:chat', (e, payload) => {
+  const id = payload && payload.streamId;
+  return ai.chat(payload || {}, id ? (d) => { try { if (!e.sender.isDestroyed()) e.sender.send('ai:delta', { id, d }); } catch (err) { /* fenêtre fermée */ } } : null);
+});
 ipcMain.handle('ai:setKey', (_e, k, id) => ai.setKey(k, id));
 ipcMain.handle('ai:usage', () => ai.usage());
 ipcMain.handle('ai:resetUsage', () => ai.resetUsage());

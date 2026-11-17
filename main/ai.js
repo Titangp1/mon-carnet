@@ -71,10 +71,48 @@ async function pickModel(p, exclude) {
   } catch (e) { return p.preferred.find((m) => !exclude.includes(m)) || null; }
 }
 
-async function post(p, body) {
+/* Lecture en continu (SSE) : le texte arrive mot par mot et part tout de suite vers l'écran */
+async function readStream(r, onDelta) {
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let buf = '', content = '', usage = null, finish = null;
+  const calls = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === '[DONE]') continue;
+      let j; try { j = JSON.parse(data); } catch (e) { continue; }
+      if (j.usage) usage = j.usage;
+      const ch = j.choices && j.choices[0];
+      if (!ch) continue;
+      if (ch.finish_reason) finish = ch.finish_reason;
+      const d = ch.delta || {};
+      if (typeof d.content === 'string' && d.content) { content += d.content; if (onDelta) onDelta(d.content); }
+      (d.tool_calls || []).forEach((t, k) => {
+        const idx = typeof t.index === 'number' ? t.index : k;
+        const cur = calls[idx] || (calls[idx] = { id: '', type: 'function', function: { name: '', arguments: '' } });
+        if (t.id) cur.id = t.id;
+        if (t.function && t.function.name) cur.function.name += t.function.name;
+        if (t.function && t.function.arguments) cur.function.arguments += t.function.arguments;
+        if (t.extra_content) cur.extra_content = t.extra_content;
+      });
+    }
+  }
+  const msg = { role: 'assistant', content };
+  const tc = calls.filter(Boolean).map((t, k) => Object.assign(t, { id: t.id || ('appel_' + Date.now().toString(36) + k) }));
+  if (tc.length) msg.tool_calls = tc;
+  return { choices: [{ message: msg, finish_reason: finish }], usage };
+}
+async function post(p, body, onDelta) {
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 90000);
   try {
     const r = await net.fetch(p.base + '/chat/completions', { method: 'POST', headers: Object.assign(authH(p), { 'Content-Type': 'application/json' }), body: JSON.stringify(body), signal: ctl.signal });
+    if (r.ok && body.stream && r.body && r.body.getReader) return { status: r.status, ok: true, json: await readStream(r, onDelta), retryAfter: 0 };
     let j = null; try { j = await r.json(); } catch (e) { /* réponse vide */ }
     if (Array.isArray(j)) j = j[0];
     /* délai conseillé : en-tête Retry-After ou « retryDelay: "23s" » de Google */
@@ -158,20 +196,23 @@ function usage() { const d = loadUsage(); return { since: d.since, days: d.days,
 function resetUsage() { usageData = { since: Date.now(), days: {} }; try { fs.writeFileSync(usageFile(), JSON.stringify(usageData)); } catch (e) { return false; } return true; }
 
 /* Un fournisseur : renvoie {ok,...}, ou {next:true} pour passer au suivant */
-async function chatWith(p, messages, tools) {
+async function chatWith(p, messages, tools, onDelta) {
   const c = C(p);
   if (!c.model) c.model = await pickModel(p);
   const tried = [];
-  let shrinks = 0, netRetry = false, waited = 0, noReason = false;
+  let shrinks = 0, netRetry = false, waited = 0, noReason = false, noStream = false;
   for (let attempt = 0; attempt < 8 && c.model; attempt++) {
     const body = { model: c.model, messages: p.id === 'gemini' ? withSignatures(messages) : stripSignatures(messages), temperature: 0.2 };
     if (p.id === 'gemini') body.max_tokens = 3000; else body.max_completion_tokens = 3000;
     if (tools && tools.length) { body.tools = tools; body.tool_choice = 'auto'; }
-    if (/gpt-oss/.test(c.model)) body.reasoning_effort = 'medium';
-    if (p.id === 'gemini' && /gemini-2\.5-flash$|flash-latest/.test(c.model)) body.reasoning_effort = 'low';
+    /* réflexion courte = réponse beaucoup plus rapide */
+    if (/gpt-oss/.test(c.model)) body.reasoning_effort = 'low';
+    if (p.id === 'gemini' && /gemini-2\.5-flash$/.test(c.model)) body.reasoning_effort = 'none';
+    else if (p.id === 'gemini' && /flash-latest|gemini-3/.test(c.model)) body.reasoning_effort = 'low';
+    if (!noStream) body.stream = true;
     if (noReason) delete body.reasoning_effort; /* réfléchit moins = moins de jetons et plus rapide */
     let r;
-    try { r = await post(p, body); }
+    try { r = await post(p, body, onDelta); }
     catch (e) {
       /* coupure réseau ou délai dépassé : un nouvel essai avant de passer à l'IA suivante */
       if (!netRetry) { netRetry = true; await sleep(1500); attempt--; continue; }
@@ -201,20 +242,20 @@ async function chatWith(p, messages, tools) {
       const daily = /per.?day|PerDay|daily|quota.*(day|jour)|RPD|TPD/i.test(txt);
       incident(p, c.model, daily ? 'quota du jour atteint' : 'limite par minute', err.message || '429');
       /* limite par minute : on attend le délai conseillé (jusqu'à 25 s au total) puis on réessaie le même modèle */
-      if (!daily && r.retryAfter && waited + r.retryAfter <= 25) { waited += r.retryAfter; await sleep(r.retryAfter * 1000 + 300); continue; }
-      if (!daily && !r.retryAfter && waited < 8) { waited += 4; await sleep(4000); continue; }
+      if (!daily && r.retryAfter && waited + r.retryAfter <= 8) { waited += r.retryAfter; await sleep(r.retryAfter * 1000 + 300); continue; }
+      if (!daily && !r.retryAfter && waited < 2) { waited += 2; await sleep(2000); continue; }
       tried.push(c.model); c.model = await pickModel(p, tried);
       if (!c.model) { blocked[p.id] = Date.now() + (daily ? 3 * 3600000 : 60000); c.model = null; return { next: true, error: 'busy', why: p.name + (daily ? ' : quota du jour atteint' : ' : trop de demandes par minute') }; }
       continue;
     }
     if (r.status === 400 && /reasoning/i.test(txt) && body.reasoning_effort && !noReason) { noReason = true; continue; }
+    if (r.status === 400 && /stream/i.test(txt) && !noStream) { noStream = true; continue; }
     if (r.status === 404 || (r.status === 400 && /model_not_found|decommissioned|not found|not supported/i.test(txt))) {
       tried.push(c.model); c.ids = null; c.model = await pickModel(p, tried); continue;
     }
     if (r.status === 400 && /tool|function/i.test(txt) && attempt < 2) continue;
     if (r.status >= 500) {
       /* « high demand » : un nouvel essai, puis un autre modèle du même fournisseur, puis l'IA suivante */
-      if (attempt < 1) { await sleep(2000); continue; }
       incident(p, c.model, 'modèle surchargé', err.message || r.status);
       tried.push(c.model); c.model = await pickModel(p, tried);
       if (c.model) continue;
@@ -229,7 +270,7 @@ async function chatWith(p, messages, tools) {
   return { next: true, error: 'busy', why: p.name + ' : tous les modèles sont saturés' };
 }
 
-async function chat(payload) {
+async function chat(payload, onDelta) {
   const list = withKeys();
   if (!list.length) return { ok: false, error: 'nokey' };
   const messages = (payload && payload.messages) || [];
@@ -242,7 +283,8 @@ async function chat(payload) {
   const why = [];
   let last = null, keyErr = 0;
   for (const p of order) {
-    const r = await chatWith(p, messages, tools);
+    if (onDelta) onDelta(null); /* null = repartir de zéro (changement d'IA) */
+    const r = await chatWith(p, messages, tools, onDelta);
     if (!r.next) { if (r.ok) delete blocked[p.id]; return r; }
     last = r; why.push(r.why || p.name); if (r.error === 'key') keyErr++;
   }

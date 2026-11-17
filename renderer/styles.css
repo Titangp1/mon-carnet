@@ -773,3 +773,30 @@ table.data tfoot td{font-weight:700;border-top:1px solid var(--line);border-bott
 .setup-list li.ok{opacity:.65}
 .setup-dot{width:22px;height:22px;flex:none;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center}
 .setup-list li.ok .setup-dot{background:var(--accent);color:#fff}.setup-dot .ico{width:14px;height:14px}
+
+/* Titan : historique, heure sous les messages, texte en direct */
+.titan-page.with-side{display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:stretch}
+.tc-main{height:100%;min-height:0;gap:14px}.tc-main .t-thread{flex:1;min-height:260px;overflow:auto}
+.tc-item .tc-del{opacity:0}
+.tc-side{display:flex;flex-direction:column;gap:10px;min-height:0;height:100%}
+.tc-new{justify-content:center}
+.tc-list{overflow:auto;display:flex;flex-direction:column;gap:2px;padding-right:4px}
+.tc-group{margin:12px 6px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;opacity:.55}
+.tc-item{display:flex;align-items:center;border-radius:10px}
+.tc-item:hover,.tc-item.cur{background:rgba(127,127,127,.12)}
+.tc-open{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:7px 10px;text-align:left;background:none;border:0;color:inherit;cursor:pointer;font:inherit}
+.tc-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.9rem}
+.tc-d{font-size:.72rem;opacity:.55}
+.tc-del{opacity:0}.tc-item:hover .tc-del,.tc-del:focus-visible{opacity:.7}
+.tc-main{min-width:0;display:flex;flex-direction:column}
+.t-msg .t-col{display:flex;flex-direction:column;min-width:0}
+.t-msg.me .t-col{align-items:flex-end}
+.t-foot{display:flex;align-items:center;gap:2px;margin-top:4px;min-height:24px;opacity:0;transition:opacity .15s}
+.t-msg:hover .t-foot,.t-msg:focus-within .t-foot,.t-msg.ai:last-of-type .t-foot{opacity:1}
+.t-time{font-size:.75rem;opacity:.6;margin:0 6px 0 2px}
+.t-model{font-size:.7rem;opacity:.4;margin-left:6px}
+.t-ic{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;border:0;background:none;color:inherit;opacity:.7;cursor:pointer}
+.t-ic:hover{background:rgba(127,127,127,.16);opacity:1}.t-ic .ico{width:15px;height:15px}
+.t-caret{display:inline-block;width:7px;height:1em;margin-left:2px;vertical-align:-2px;background:currentColor;opacity:.6;animation:tcblink 1s steps(2) infinite}
+@keyframes tcblink{50%{opacity:0}}
+@media (max-width:900px){.titan-page.with-side{grid-template-columns:1fr}.tc-side{position:static;max-height:220px}}

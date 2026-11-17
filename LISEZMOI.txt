@@ -1,4 +1,4 @@
-Mon Carnet 4.0.3
+Mon Carnet 4.1.0
 ================
 
 Installation
@@ -21,6 +21,11 @@ Titan, l'assistant
   Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
 - Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
 - Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.1.0
+- Titan : historique des conversations a gauche (Aujourd'hui, Hier, 7 derniers jours...), nouvelle conversation, suppression.
+- Sous chaque message : l'heure ("Il y a 5 minutes"), copier, modifier et renvoyer, reessayer, IA utilisee.
+- Reponses beaucoup plus rapides : le texte s'affiche pendant qu'il s'ecrit, reflexion plus courte, attentes reduites.
 
 Nouveautes 4.0.3
 - Titan : correction de l'erreur Gemini "thought_signature" quand une autre IA avait pris le relais,

@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('carnet', {
   mailSearch: (opts) => ipcRenderer.invoke('mail:search', opts),
   mailAttachment: (id, name, mode) => ipcRenderer.invoke('mail:attachment', id, name, mode),
   aiChat: (payload) => ipcRenderer.invoke('ai:chat', payload),
+  onAiDelta: (fn) => ipcRenderer.on('ai:delta', (_e, x) => fn(x)),
   aiSetKey: (k, id) => ipcRenderer.invoke('ai:setKey', k, id),
   aiUsage: () => ipcRenderer.invoke('ai:usage'),
   aiResetUsage: () => ipcRenderer.invoke('ai:resetUsage'),
