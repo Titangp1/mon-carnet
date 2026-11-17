@@ -239,13 +239,13 @@ function titanAsk(text,opts){
   opts=opts||{};text=String(text||"").trim();if(!text||S.titan.busy)return;speakStop();
   if(!fileApi||!fileApi.aiChat){S.titan.msgs.push({role:"user",content:text,at:Date.now()},{role:"assistant",content:"Titan fonctionne uniquement dans l'application installée.",at:Date.now(),error:true});titanRefresh();return;}
   S.titan.msgs.push({role:"user",content:text,at:Date.now(),voice:!!opts.voice});S.titan.busy=true;S.titan.needKey=false;S.titan.stop=false;S.titan.step="Je réfléchis…";S.titan.draft="";saveTitan();titanRefresh(true);
-  var base=[{role:"system",content:systemPrompt()}].concat(titanApiHistory()),scratch=[],trace=[];TURN=[];
+  var base=[{role:"system",content:systemPrompt()}].concat(titanApiHistory()),scratch=[],trace=[];var prefer=null;TURN=[];
   function step(i){
     if(S.titan.stop)return finish("D'accord, j'arrête là.",false);
     if(i>9)return finish("Je n'ai pas réussi à aller au bout. Reformule ta question ?",true);
-    return fileApi.aiChat({messages:base.concat(scratch),tools:TITAN_TOOLS}).then(function(r){
+    return fileApi.aiChat({messages:base.concat(scratch),tools:TITAN_TOOLS,prefer:prefer}).then(function(r){
       if(!r||!r.ok){if(r&&(r.error==="key"||r.error==="nokey"))S.titan.needKey=true;return finish(titanErr(r),true);}
-      var msg=r.message||{};
+      if(r.provider)prefer=r.provider;var msg=r.message||{};
       if(msg.tool_calls&&msg.tool_calls.length){
         scratch.push({role:"assistant",content:msg.content||"",tool_calls:msg.tool_calls});
         return msg.tool_calls.reduce(function(p,tc){return p.then(function(){var args={};try{args=JSON.parse(tc.function.arguments||"{}");}catch(e){}

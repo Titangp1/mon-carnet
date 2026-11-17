@@ -10,7 +10,7 @@ const WHISPER = ['whisper-large-v3-turbo', 'whisper-large-v3'];
 /* Plusieurs fournisseurs gratuits compatibles OpenAI : Titan passe au suivant si l'un sature (limite de jetons, quota…). */
 const PROVIDERS = [
   { id: 'gemini', name: 'Gemini', base: 'https://generativelanguage.googleapis.com/v1beta/openai', prefix: /^(AIza|AQ.)/, file: 'titan-cle-gemini.json',
-    preferred: ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'], skip: /embedding|imagen|veo|tts|image|live|aqa|gemma/i },
+    preferred: ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.0-flash'], skip: /embedding|imagen|veo|tts|image|live|aqa|gemma/i },
   { id: 'groq', name: 'Groq', base: API, prefix: /^gsk_/, file: 'titan-cle.json',
     preferred: ['meta-llama/llama-4-scout-17b-16e-instruct', 'llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'moonshotai/kimi-k2-instruct', 'qwen/qwen3.8-27b', 'qwen/qwen3-32b', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant'], skip: /whisper|guard|orpheus|tts|allam|compound/i },
   { id: 'cerebras', name: 'Cerebras', base: 'https://api.cerebras.ai/v1', prefix: /^csk-/, file: 'titan-cle-cerebras.json',
@@ -89,6 +89,19 @@ const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const blocked = {};
 const isBlocked = (p) => blocked[p.id] && blocked[p.id] > Date.now();
 
+/* Gemini (modèles récents) refuse un appel d'outil sans thought_signature : ceux produits par une autre IA
+   reçoivent la valeur neutre prévue par Google ; les autres IA ne reçoivent pas ce champ. */
+function withSignatures(messages) {
+  return messages.map((m) => {
+    if (m.role !== 'assistant' || !Array.isArray(m.tool_calls) || !m.tool_calls.length) return m;
+    return Object.assign({}, m, { tool_calls: m.tool_calls.map((t) => (t.extra_content && t.extra_content.google && t.extra_content.google.thought_signature) ? t
+      : Object.assign({}, t, { extra_content: { google: { thought_signature: 'skip_thought_signature_validator' } } })) });
+  });
+}
+function stripSignatures(messages) {
+  return messages.map((m) => (m.role === 'assistant' && Array.isArray(m.tool_calls)) ? Object.assign({}, m, { tool_calls: m.tool_calls.map((t) => { const x = Object.assign({}, t); delete x.extra_content; return x; }) }) : m);
+}
+
 /* ---------- Taille des requêtes ---------- */
 const estTokens = (x) => Math.ceil(JSON.stringify(x || '').length / 3.2);
 /* Réduit la conversation sous un budget de jetons : résultats d'outils raccourcis, puis anciens messages retirés. */
@@ -151,7 +164,7 @@ async function chatWith(p, messages, tools) {
   const tried = [];
   let shrinks = 0, netRetry = false, waited = 0, noReason = false;
   for (let attempt = 0; attempt < 8 && c.model; attempt++) {
-    const body = { model: c.model, messages, temperature: 0.2 };
+    const body = { model: c.model, messages: p.id === 'gemini' ? withSignatures(messages) : stripSignatures(messages), temperature: 0.2 };
     if (p.id === 'gemini') body.max_tokens = 3000; else body.max_completion_tokens = 3000;
     if (tools && tools.length) { body.tools = tools; body.tool_choice = 'auto'; }
     if (/gpt-oss/.test(c.model)) body.reasoning_effort = 'medium';
@@ -170,7 +183,7 @@ async function chatWith(p, messages, tools) {
       delete msg.reasoning; delete msg.reasoning_content;
       if (msg.content == null && !(msg.tool_calls && msg.tool_calls.length)) msg.content = '';
       record(p, c.model, r.json.usage, messages, msg);
-      return { ok: true, message: msg, model: p.name + ' · ' + c.model, usage: r.json.usage || null };
+      return { ok: true, message: msg, provider: p.id, model: p.name + ' · ' + c.model, usage: r.json.usage || null };
     }
     const err = (r.json && r.json.error) || {};
     const txt = String(err.message || '') + ' ' + String(err.code || err.type || err.status || '');
@@ -200,9 +213,13 @@ async function chatWith(p, messages, tools) {
     }
     if (r.status === 400 && /tool|function/i.test(txt) && attempt < 2) continue;
     if (r.status >= 500) {
-      if (attempt < 2) { await sleep(1500); continue; }
-      incident(p, c.model, 'panne du service', err.message || r.status);
-      return { next: true, error: 'server', why: p.name + ' en panne passagère' };
+      /* « high demand » : un nouvel essai, puis un autre modèle du même fournisseur, puis l'IA suivante */
+      if (attempt < 1) { await sleep(2000); continue; }
+      incident(p, c.model, 'modèle surchargé', err.message || r.status);
+      tried.push(c.model); c.model = await pickModel(p, tried);
+      if (c.model) continue;
+      c.model = null;
+      return { next: true, error: 'server', why: p.name + ' surchargé' };
     }
     /* Autre refus : on note l'erreur et on laisse sa chance à l'IA suivante */
     incident(p, c.model, 'erreur ' + r.status, err.message || '');
@@ -218,7 +235,10 @@ async function chat(payload) {
   const messages = (payload && payload.messages) || [];
   const tools = payload && payload.tools;
   /* les IA bloquées passent en dernier (au cas où le blocage serait levé) */
-  const order = list.filter((p) => !isBlocked(p)).concat(list.filter(isBlocked));
+  let order = list.filter((p) => !isBlocked(p)).concat(list.filter(isBlocked));
+  /* pendant une même question, on garde l'IA qui a déjà commencé à répondre */
+  const pref = payload && payload.prefer && order.find((p) => p.id === payload.prefer);
+  if (pref) order = [pref].concat(order.filter((p) => p !== pref));
   const why = [];
   let last = null, keyErr = 0;
   for (const p of order) {
