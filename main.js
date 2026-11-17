@@ -3,12 +3,36 @@ const path = require('path');
 const fs = require('fs');
 
 app.setName('Mon Carnet');
-/* Les réglages internes (clés d'IA, caches) restent dans l'ancien dossier s'il existe, pour ne rien perdre */
+/* TOUT ce qui concerne l'utilisateur est dans Documents\Mon_Carnet :
+   données à la racine, et dans « Systeme » les clés d'IA (chiffrées par Windows), connexions mail et Sarool,
+   historique de Titan, copies locales et journaux. Rien dans AppData. */
 {
-  const appData = app.getPath('appData');
-  let oldUD = '';
-  try { const f = fs.readdirSync(appData).find((n) => /^Carnet de /i.test(n) && fs.existsSync(path.join(appData, n, 'Preferences'))); if (f) oldUD = path.join(appData, f); } catch (e) { /* rien */ }
-  if (!process.env.CARNET_DATA_DIR && !app.commandLine.hasSwitch('user-data-dir')) app.setPath('userData', oldUD && fs.existsSync(oldUD) ? oldUD : path.join(appData, 'Mon Carnet'));
+  const docsRoot = process.env.CARNET_DOCS_DIR || path.join(app.getPath('documents'), 'Mon_Carnet');
+  const sys = path.join(docsRoot, 'Systeme');
+  if (!process.env.CARNET_DATA_DIR && !app.commandLine.hasSwitch('user-data-dir')) {
+    try {
+      fs.mkdirSync(sys, { recursive: true });
+      const marker = path.join(sys, 'migration-appdata.txt');
+      if (!fs.existsSync(marker)) {
+        /* Ancien emplacement (AppData\Roaming\Carnet de … ou Mon Carnet) : on recopie tout sauf les caches */
+        const appData = process.env.CARNET_OLD_APPDATA || (process.env.CARNET_DOCS_DIR ? '' : app.getPath('appData'));
+        const skip = /^(Cache|Code Cache|GPUCache|DawnCache|DawnGraphiteCache|DawnWebGPUCache|GrShaderCache|ShaderCache|Crashpad|blob_storage|SingletonLock|SingletonCookie|SingletonSocket|lockfile)$/i;
+        const olds = appData ? fs.readdirSync(appData).filter((n) => /^(Carnet de .+|Mon Carnet)$/i.test(n)).map((n) => path.join(appData, n))
+          .filter((d) => fs.existsSync(path.join(d, 'Preferences'))).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs) : [];
+        const copied = [];
+        for (const d of olds) {
+          for (const name of fs.readdirSync(d)) {
+            if (skip.test(name)) continue;
+            const dst = path.join(sys, name);
+            if (fs.existsSync(dst)) continue;
+            try { fs.cpSync(path.join(d, name), dst, { recursive: true }); copied.push(name); } catch (e) { /* fichier verrouillé : ignoré */ }
+          }
+        }
+        fs.writeFileSync(marker, 'Recopié depuis : ' + (olds.join(', ') || 'rien (nouvelle installation)') + '\r\n' + copied.join('\r\n') + '\r\n', 'utf8');
+      }
+      app.setPath('userData', sys);
+    } catch (e) { console.error('[dossier]', e.message); }
+  }
 }
 app.setAppUserModelId('fr.moncarnet.app'); // nécessaire pour les notifications Windows
 app.commandLine.appendSwitch('lang', 'fr-FR');
@@ -69,7 +93,7 @@ function migrateData() {
       }
     }
     const info = path.join(d, 'A LIRE.txt');
-    if (!fs.existsSync(info)) fs.writeFileSync(info, '\uFEFFMon Carnet : tes données\r\n\r\n- carnet.json : tout ce que tu as saisi (agenda, tâches, clients, réglages...).\r\n- sauvegardes : une copie par jour, 30 jours gardés.\r\n- Factures et Pièces jointes : fichiers créés par l\'appli.\r\n\r\nPour changer de PC : copie ce dossier entier dans Documents sur le nouveau PC avant de lancer Mon Carnet.\r\n', 'utf8');
+    if (!fs.existsSync(info) || !/Systeme/.test(fs.readFileSync(info, 'utf8'))) fs.writeFileSync(info, '\uFEFFMon Carnet : tes données\r\n\r\n- carnet.json : tout ce que tu as saisi (agenda, tâches, clients, réglages...).\r\n- sauvegardes : une copie par jour, 30 jours gardés.\r\n- Factures et Pièces jointes : fichiers créés par l\'appli.\r\n- Systeme : clés d\'IA et mot de passe mail (chiffrés par Windows, lisibles seulement sur ta session), connexion Sarool, conversations avec Titan, journaux. Ne pas modifier.\r\n\r\nPour changer de PC : copie ce dossier entier dans Documents sur le nouveau PC avant de lancer Mon Carnet.\r\n', 'utf8');
   } catch (e) { console.error('[migration]', e.message); }
 }
 const inside = (p, dir) => { const r = path.relative(dir, p); return !!r && !r.startsWith('..') && !path.isAbsolute(r); };

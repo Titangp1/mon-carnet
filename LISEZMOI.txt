@@ -1,4 +1,4 @@
-Mon Carnet 4.0.1
+Mon Carnet 4.0.2
 ================
 
 Installation
@@ -9,7 +9,7 @@ Installation
 Tes donnees
 - Tout ce que tu saisis est enregistre dans Documents\Mon_Carnet\carnet.json,
   avec une copie de secours par jour dans Documents\Mon_Carnet\sauvegardes (30 jours gardes).
-- Factures et pieces jointes : Documents\Mon_Carnet aussi.
+- Factures, pieces jointes et sous-dossier Systeme (cles d'IA chiffrees, connexions, conversations avec Titan) : Documents\Mon_Carnet aussi.
 - Pour changer de PC : copie le dossier Documents\Mon_Carnet sur le nouveau PC avant de lancer l'appli.
 
 Mises a jour
@@ -21,6 +21,10 @@ Titan, l'assistant
   Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
 - Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
 - Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.0.2
+- Tout est dans Documents\Mon_Carnet, y compris cles d'IA, connexions mail et Sarool, conversations avec Titan
+  (sous-dossier Systeme). Plus rien dans AppData : l'ancien dossier est recopie automatiquement.
 
 Nouveautes 4.0.1
 - Carte "Premiers pas" sur la page Aujourd'hui : emploi du temps, mails de l'ecole, Sarool, cle d'IA, profil pro.

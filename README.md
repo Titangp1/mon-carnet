@@ -28,9 +28,10 @@ Tout reste sur ton PC, dans **Documents\Mon_Carnet** :
 
 - `carnet.json` : ce que tu saisis ;
 - `sauvegardes\` : une copie par jour (30 jours) ;
-- `Factures\`, `Pièces jointes\`.
+- `Factures\`, `Pièces jointes\` ;
+- `Systeme\` : clés d'IA et mot de passe mail (chiffrés par Windows), connexions, conversations avec Titan, journaux.
 
-Les clés d'IA et mots de passe sont chiffrés par Windows et ne quittent jamais le PC.
+Rien n'est écrit ailleurs : `Systeme\` contient aussi quelques caches techniques (affichage), sans données perso. Les clés chiffrées ne fonctionnent que sur ta session Windows : sur un autre PC, il suffit de les recoller.
 
 ## Publier une version
 
