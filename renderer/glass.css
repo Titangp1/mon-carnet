@@ -1,0 +1,277 @@
+/* Mon Carnet — couche « verre liquide », version fluide.
+   Principe de performance : rien n'est flouté en continu. Le fond d'ambiance est fait de dégradés déjà doux
+   (aucun filtre) qui ne bougent que par « transform » (géré par la carte graphique) ; les cartes sont
+   translucides avec reflets et liseré, sans backdrop-filter ; le vrai flou est réservé aux panneaux
+   flottants (Titan, notifications, fenêtres) et il est coupé pendant les animations de fond.
+   data-fx="complet" | "leger" (fond fixe, pas de reflet) | "aucun" (ni fond ni animation). */
+
+:root{
+  --spring:cubic-bezier(.2,1.15,.32,1); --out:cubic-bezier(.4,0,1,1); --soft:cubic-bezier(.25,.8,.25,1);
+  --glass:rgba(255,255,255,.66); --glass-strong:rgba(255,255,255,.86); --glass-line:rgba(15,23,42,.08); --glass-hi:rgba(255,255,255,.95);
+  --glass-shadow:inset 1px 1px 0 var(--glass-hi),inset -1px -1px 0 rgba(255,255,255,.35),0 3px 12px rgba(30,41,82,.07);
+  --rim-a:rgba(255,255,255,.95); --rim-b:rgba(255,255,255,.3); --sheen:rgba(255,255,255,.7); --amb-o:.5;
+  --c1:#8fb2ff; --c2:#cdb8ff; --c3:#8af0dc; --c4:#ffd99a;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --glass:rgba(18,27,49,.62); --glass-strong:rgba(14,21,39,.9); --glass-line:rgba(255,255,255,.075); --glass-hi:rgba(255,255,255,.11);
+  --glass-shadow:inset 1px 1px 0 var(--glass-hi),inset -1px -1px 0 rgba(255,255,255,.025),0 4px 14px rgba(0,0,0,.2);
+  --rim-a:rgba(255,255,255,.26); --rim-b:rgba(255,255,255,.04); --sheen:rgba(150,185,255,.14); --amb-o:.6;
+  --c1:#2858e6; --c2:#7c4ddb; --c3:#0b9d8f; --c4:#d98a0b}}
+:root[data-theme="dark"]{
+  --glass:rgba(18,27,49,.62); --glass-strong:rgba(14,21,39,.9); --glass-line:rgba(255,255,255,.075); --glass-hi:rgba(255,255,255,.11);
+  --glass-shadow:inset 1px 1px 0 var(--glass-hi),inset -1px -1px 0 rgba(255,255,255,.025),0 4px 14px rgba(0,0,0,.2);
+  --rim-a:rgba(255,255,255,.26); --rim-b:rgba(255,255,255,.04); --sheen:rgba(150,185,255,.14); --amb-o:.6;
+  --c1:#2858e6; --c2:#7c4ddb; --c3:#0b9d8f; --c4:#d98a0b}
+
+/* ---------- Fond d'ambiance : dégradés doux, déplacés uniquement par transform ---------- */
+html,body{overflow:hidden}
+body{background-image:none}
+#ambient{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;contain:strict}
+#ambient i{position:absolute;display:block;border-radius:50%;opacity:var(--amb-o)}
+#ambient .b1{width:70vmax;height:70vmax;left:-24vmax;top:-34vmax;background:radial-gradient(closest-side,var(--c1),transparent)}
+#ambient .b2{width:60vmax;height:60vmax;right:-22vmax;top:-20vmax;background:radial-gradient(closest-side,var(--c2),transparent)}
+#ambient .b3{width:56vmax;height:56vmax;left:14vmax;bottom:-36vmax;background:radial-gradient(closest-side,var(--c3),transparent);opacity:calc(var(--amb-o)*.65)}
+#ambient .b4{width:40vmax;height:40vmax;right:2vmax;bottom:-22vmax;background:radial-gradient(closest-side,var(--c4),transparent);opacity:calc(var(--amb-o)*.4)}
+@keyframes drift1{to{transform:translate3d(10vw,8vh,0) scale(1.08)}}
+@keyframes drift2{to{transform:translate3d(-8vw,10vh,0) scale(.94)}}
+@keyframes drift3{to{transform:translate3d(10vw,-8vh,0) scale(1.06)}}
+/* le fond se fige quand un panneau flouté est ouvert (le flou n'a alors rien à recalculer) ou quand la fenêtre est cachée */
+
+.app{position:relative;z-index:1}
+#main{will-change:scroll-position}
+
+/* ---------- Surfaces de verre (translucides, sans flou continu) ---------- */
+:root[data-fx] .rail{background:var(--glass);border-right:1px solid var(--glass-line);box-shadow:inset -1px 0 0 var(--glass-hi)}
+:root[data-fx] .top{background:color-mix(in srgb,var(--glass) 55%,transparent);border-bottom:1px solid var(--glass-line)}
+:root[data-fx] :is(.card,.side-col>section,.set-section,.tg-wrap,.month,.mail-list,.mail-read,.urssaf,.chart-box,.table-wrap,.hero-empty,.t-msg.ai .t-bubble,.t-card,.cmdk,.li-body){background-color:var(--glass);border-color:var(--glass-line);box-shadow:var(--glass-shadow)}
+:root[data-fx] .seg{background-color:color-mix(in srgb,var(--sunk) 70%,transparent)}
+:root[data-fx] .li.cours .li-body{background:var(--class-soft)}
+:root[data-fx] .li.gap .li-body{background:var(--free);box-shadow:none}
+:root[data-fx] .li.permis .li-body{background:var(--drive-soft)}
+:root[data-fx] .ask-bar,:root[data-fx] .t-compose{background:linear-gradient(var(--glass),var(--glass)) padding-box,linear-gradient(120deg,color-mix(in srgb,var(--ai1) 70%,transparent),color-mix(in srgb,var(--ai2) 60%,transparent)) border-box;border-color:transparent;box-shadow:var(--glass-shadow)}
+:root[data-fx] :is(.sheet,.palette,.notif-panel,.titan-drawer){background:var(--glass-strong);border-color:var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi),var(--pop)}
+:root[data-fx] .sheet>footer,:root[data-fx] .pal-foot{background:color-mix(in srgb,var(--sunk) 55%,transparent)}
+/* vrai flou uniquement sur les panneaux flottants, rayon modéré */
+:root[data-fx="complet"] :is(.palette,.notif-panel,.titan-drawer,.sheet){-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);background:color-mix(in srgb,var(--glass-strong) 82%,transparent)}
+:root[data-fx="leger"] :is(.card,.side-col>section,.set-section,.tg-wrap,.month,.mail-list,.mail-read,.hero-empty,.rail,.top,.t-msg.ai .t-bubble){background-color:var(--glass-strong)}
+
+/* Liseré lumineux (bord de verre) : peint une seule fois */
+:root[data-fx]:not([data-fx="aucun"]) :is(.card,.side-col>section,.set-section,.hero-empty,.sheet,.palette,.mail-read){position:relative}
+:root[data-fx]:not([data-fx="aucun"]) :is(.sheet,.palette,.notif-panel,.titan-drawer)::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(150deg,var(--rim-a),var(--rim-b) 34%,transparent 60%,var(--rim-b) 85%,var(--rim-a));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+/* Reflet qui suit la souris : une tache lumineuse déplacée par transform (aucun repeint) */
+:root[data-fx="complet"] :is(.card,.side-col>section,.hero-empty,.mail-read,.t-card){overflow:hidden;isolation:isolate}
+:root[data-fx="complet"] :is(.card,.side-col>section,.hero-empty,.mail-read,.t-card)::before{content:"";position:absolute;left:0;top:0;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;pointer-events:none;z-index:-1;
+  background:radial-gradient(closest-side,var(--sheen),transparent);opacity:0;transform:translate3d(var(--sx,0px),var(--sy,0px),0);transition:opacity .35s}
+:root[data-fx="complet"] :is(.card,.side-col>section,.hero-empty,.mail-read,.t-card).lit::before{opacity:1;will-change:transform}
+
+/* ---------- Navigation : pastille de verre qui glisse ---------- */
+.rail{position:relative}
+.nav-ind{position:absolute;left:0;top:0;width:0;height:0;border-radius:12px;pointer-events:none;z-index:0;opacity:0;will-change:transform;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 24%,transparent),color-mix(in srgb,var(--accent) 11%,transparent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px color-mix(in srgb,var(--accent) 32%,transparent),0 6px 16px color-mix(in srgb,var(--accent) 16%,transparent);
+  transition:transform .5s var(--spring),height .35s var(--spring),width .3s,opacity .3s}
+.nav,.brand,.rail-foot{position:relative;z-index:1}
+.nav button[aria-current="page"]{background:transparent}
+.nav button[aria-current="page"]::before{display:none}
+.nav button[data-view="titan"][aria-current="page"]{background:transparent}
+.nav button{transition:color .2s,transform .2s var(--spring)}
+.nav button:active{transform:scale(.97)}
+.nav button .ico{transition:transform .3s var(--spring)}
+.nav button:hover .ico{transform:translateX(1px) scale(1.08)}
+
+/* ---------- Boutons ---------- */
+.btn{position:relative;overflow:hidden;transition:background-color .2s,border-color .2s,color .2s,transform .22s var(--spring)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:scale(.96);transition-duration:.08s}
+.btn.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 90%,#fff),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 18px color-mix(in srgb,var(--accent) 28%,transparent)}
+.btn.primary::after,.btn.ok::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%) skewX(-18deg);pointer-events:none}
+.btn.primary:hover::after,.btn.ok:hover::after{transition:transform .8s ease;transform:translateX(320%) skewX(-18deg)}
+.titan-btn .ico{transition:transform .45s var(--spring)}
+.titan-btn:hover .ico{transform:rotate(18deg) scale(1.15)}
+
+/* ---------- Soulèvement doux (transform uniquement) ---------- */
+:root[data-fx]:not([data-fx="aucun"]) :is(.side-col>section,.card.stat-card,.lesson,.slot,.mrow,.w-mail,.w-notif,.np-item,.crow){transition:transform .3s var(--spring),background-color .2s}
+:root[data-fx]:not([data-fx="aucun"]) :is(.side-col>section,.card.stat-card):hover{transform:translateY(-3px)}
+:root[data-fx]:not([data-fx="aucun"]) :is(.mrow,.w-mail,.w-notif,.np-item,.crow):hover{transform:translateX(3px)}
+.ticket{transition:transform .45s var(--spring)}
+.ticket:hover{transform:translateY(-3px)}
+.ticket .t-time{background:linear-gradient(180deg,#fff,#b9cdfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- Entrées de page (opacité + transform, sans flou) ---------- */
+@keyframes rise{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.page.enter>*{animation:rise .5s var(--spring) both}
+.page.enter>*:nth-child(2){animation-delay:.04s}.page.enter>*:nth-child(3){animation-delay:.08s}.page.enter>*:nth-child(4){animation-delay:.12s}.page.enter>*:nth-child(n+5){animation-delay:.16s}
+.page.enter .side-col>section{animation:rise .5s var(--spring) both}
+.page.enter .side-col>section:nth-child(1){animation-delay:.1s}.page.enter .side-col>section:nth-child(2){animation-delay:.16s}.page.enter .side-col>section:nth-child(3){animation-delay:.22s}.page.enter .side-col>section:nth-child(n+4){animation-delay:.28s}
+.page.enter .tg-ev{animation:pop .35s var(--spring) both .12s}
+.page.enter .meter i{animation:grow .9s var(--spring) both .2s}
+@keyframes grow{from{width:0}}
+
+/* ---------- Cloche, toasts, fenêtres, Titan ---------- */
+.notif-btn.ring .ico{animation:ring .9s ease;transform-origin:50% 10%}
+@keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-15deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
+.nb-count{animation:pop .35s var(--spring)}
+.toast{background:color-mix(in srgb,var(--ink) 92%,transparent);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),var(--pop);border-radius:14px;animation:toastIn .4s var(--spring)}
+.toast.out{animation:toastOut .2s var(--out) forwards}
+@keyframes toastIn{from{opacity:0;transform:translate3d(-50%,14px,0) scale(.96)}}
+@keyframes toastOut{to{opacity:0;transform:translate3d(-50%,10px,0) scale(.97)}}
+.overlay{animation:fadeOnly .2s ease-out;backdrop-filter:none;background:color-mix(in srgb,var(--overlay) 100%,transparent)}
+.sheet{animation:sheetIn .36s var(--spring)}
+@keyframes sheetIn{from{opacity:0;transform:translate3d(0,14px,0) scale(.97)}}
+.overlay.closing{animation:fadeOut .16s var(--out) forwards}
+.overlay.closing .sheet{animation:sheetOut .16s var(--out) forwards}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes sheetOut{to{opacity:0;transform:translate3d(0,8px,0) scale(.98)}}
+.palette{animation:sheetIn .28s var(--spring)}
+.notif-panel{animation:sheetIn .28s var(--spring);transform-origin:top right}
+.titan-drawer.enter{animation:drawerIn .4s var(--spring)}
+.titan-drawer.leave{animation:drawerOut .18s var(--out) forwards}
+@keyframes drawerIn{from{opacity:0;transform:translate3d(28px,0,0)}}
+@keyframes drawerOut{to{opacity:0;transform:translate3d(24px,0,0)}}
+.t-msg.fresh.me .t-bubble{animation:msgMe .35s var(--spring)}
+.t-msg.fresh.ai .t-col{animation:rise .45s var(--spring)}
+@keyframes msgMe{from{opacity:0;transform:translate3d(0,8px,0) scale(.97)}}
+.t-col{display:flex;flex-direction:column;gap:8px;min-width:0;max-width:min(700px,88%)}
+.t-col .t-bubble{max-width:100%}
+.titan-drawer .t-col{max-width:92%}
+.t-stop{margin-left:auto}
+.t-cards{display:flex;flex-direction:column;gap:6px}
+.t-card{display:flex;align-items:center;gap:10px;padding:9px 10px 9px 12px;border-radius:14px;border:1px solid var(--line)}
+.t-card .grow{flex:1;min-width:0}
+.t-card b{display:block;font-size:14px}
+.t-card small{display:block;color:var(--muted);font-size:12.5px}
+.tc-ico{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--ok-soft);color:var(--ok)}
+.tc-ico .ico{width:15px;height:15px}
+.tc-btns{display:flex;gap:4px;flex:none}
+.t-card.s-pending{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.t-card.s-pending .tc-ico{background:var(--warn-soft);color:var(--warn)}
+.t-card.s-failed .tc-ico{background:var(--bad-soft);color:var(--bad)}
+.t-card.s-undone,.t-card.s-dismissed{opacity:.6}
+.t-card.s-undone .tc-ico,.t-card.s-dismissed .tc-ico{background:var(--sunk);color:var(--muted)}
+.t-card.s-running .tc-ico .ico{animation:spin 1s linear infinite}
+
+/* ---------- Voix (Titan) ---------- */
+.mic-btn{flex:none;border-radius:12px}
+.mic-btn .ico{transition:transform .2s var(--spring)}
+.mic-btn.rec{background:var(--bad)!important;border-color:var(--bad)!important;color:#fff!important}
+.mic-btn.rec::before{content:"";position:absolute;inset:-6px;border-radius:16px;border:2px solid var(--bad);opacity:.6;animation:micPulse 1.2s ease-out infinite}
+.mic-btn{overflow:visible}
+@keyframes micPulse{from{transform:scale(.85);opacity:.7}to{transform:scale(1.25);opacity:0}}
+.mic-btn.busy .ico{animation:spin 1s linear infinite}
+.rec-bar{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:6px 4px;color:var(--bad);font-weight:600;font-size:14px}
+.rec-bar canvas{flex:1;min-width:60px;height:30px;display:block}
+.rec-bar .rec-dot{width:9px;height:9px;border-radius:50%;background:var(--bad);animation:blinkRec 1s steps(2,start) infinite;flex:none}
+.rec-bar .num{color:var(--ink-2);font-weight:600;min-width:40px}
+@keyframes blinkRec{to{visibility:hidden}}
+.t-voice{display:inline-flex;align-items:center;gap:5px;font-size:12px;opacity:.85;margin-bottom:3px}
+.t-voice .ico{width:13px;height:13px}
+.speak-btn[aria-pressed="true"]{color:var(--ai1);background:color-mix(in srgb,var(--ai1) 14%,transparent)}
+
+/* ---------- Événements perso ---------- */
+.tg-ev.evt{background:color-mix(in srgb,var(--evc) 20%,transparent);border-left:3px solid var(--evc);color:var(--ink)}
+.tg-ev.evt .ev-time{color:color-mix(in srgb,var(--evc) 75%,var(--ink))}
+.tg-ev.evt:hover{background:color-mix(in srgb,var(--evc) 28%,transparent)}
+.tg-allday.evt{border:0;cursor:pointer;color:color-mix(in srgb,var(--evc) 80%,var(--ink));background:color-mix(in srgb,var(--evc) 18%,transparent);text-align:left;font:inherit;font-size:12px;font-weight:600}
+.li.evt .li-body{cursor:pointer;background:color-mix(in srgb,var(--evc) 13%,transparent)!important;border-color:transparent}
+.li.evt .li-dot{border-color:var(--evc);background:var(--evc)}
+.li.evt .li-main span{color:color-mix(in srgb,var(--evc) 70%,var(--ink))}
+.chip.evc{background:color-mix(in srgb,var(--evc) 18%,transparent);color:color-mix(in srgb,var(--evc) 80%,var(--ink))}
+.m-item.evt{border-left-color:var(--evc);background:color-mix(in srgb,var(--evc) 16%,transparent)}
+.l-evt{background:color-mix(in srgb,#2dd4bf 20%,transparent);border-color:#2dd4bf!important}
+.pill.cat span i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--evc);margin-right:2px;align-self:center}
+.pill.cat input:checked+span{background:color-mix(in srgb,var(--accent) 16%,var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.kind-switch{align-self:flex-start}
+.kind-switch button{display:inline-flex;align-items:center;gap:6px}
+.kind-switch .ico{width:15px;height:15px}
+.field input.title-in{font:700 19px/1.2 var(--display);min-height:48px;letter-spacing:-.01em}
+.lesson-date.ev{background:var(--class-soft);color:var(--class)}
+.ticket.t-event::after{background:radial-gradient(circle,color-mix(in srgb,var(--evc) 40%,transparent),transparent 65%)}
+.ticket.t-event .t-kind{color:var(--evc)}
+.countdown-list{display:flex;flex-direction:column;margin:0 -8px}
+.cd-item{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:0;border-radius:10px;background:none;text-align:left;transition:background-color .2s}
+.cd-item:hover{background:var(--sunk)}
+.cd-item .grow{flex:1;min-width:0}
+.cd-item b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-item small{display:block;color:var(--muted);font-size:12.5px}
+.cd-j{min-width:46px;text-align:center;font:800 15px/1 var(--display);padding:7px 6px;border-radius:10px;background:color-mix(in srgb,var(--evc,var(--accent)) 16%,transparent);color:color-mix(in srgb,var(--evc,var(--accent)) 80%,var(--ink))}
+.brief{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink-2)}
+.brief p{display:flex;gap:8px;align-items:flex-start}
+.brief .ico{width:16px;height:16px;margin-top:2px;color:var(--accent);flex:none}
+
+/* ---------- Pièces jointes ---------- */
+.att{padding:4px 4px 4px 10px;gap:8px}
+.att .att-n{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att .btn.sm{min-height:26px;padding:2px 8px;font-size:12px}
+.att.pdf>.ico{color:var(--bad)}.att.ics>.ico{color:var(--class)}
+.att-text{max-height:60vh;overflow:auto}
+
+/* ---------- Écran de chargement ---------- */
+#splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:var(--bg);overflow:hidden;
+  animation:splashFallback 0s 22s forwards;transition:opacity .55s ease,transform .6s var(--spring)}
+#splash.out{opacity:0;transform:scale(1.04);pointer-events:none}
+@keyframes splashFallback{to{opacity:0;visibility:hidden;pointer-events:none}}
+.sp-ambient{position:absolute;inset:0}
+.sp-ambient i{position:absolute;border-radius:50%;opacity:.85;will-change:transform}
+.sp-ambient i:nth-child(1){width:70vmax;height:70vmax;left:-12vmax;top:-30vmax;background:radial-gradient(closest-side,var(--c1),transparent);animation:drift1 8s var(--soft) infinite alternate}
+.sp-ambient i:nth-child(2){width:60vmax;height:60vmax;right:-16vmax;top:6vh;background:radial-gradient(closest-side,var(--c2),transparent);animation:drift2 10s var(--soft) infinite alternate}
+.sp-ambient i:nth-child(3){width:54vmax;height:54vmax;left:20vmax;bottom:-30vmax;background:radial-gradient(closest-side,var(--c3),transparent);animation:drift3 12s var(--soft) infinite alternate}
+.sp-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;width:min(460px,calc(100vw - 32px))}
+.sp-logo{position:relative;width:84px;height:84px;filter:drop-shadow(0 18px 40px rgba(80,110,255,.45));animation:float 3.2s ease-in-out infinite,popIn .8s var(--spring) both}
+.sp-logo svg{display:block;width:84px;height:84px}
+.sp-logo .sp-check{stroke-dasharray:40;stroke-dashoffset:40;animation:draw .8s .5s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.sp-logo .sp-shine{position:absolute;inset:0;border-radius:24px;overflow:hidden}
+.sp-logo .sp-shine::before{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.5) 50%,transparent 58%);animation:sweep 2.6s 1s ease-in-out infinite}
+@keyframes sweep{0%{transform:translate3d(-60%,0,0)}60%,100%{transform:translate3d(60%,0,0)}}
+@keyframes float{50%{transform:translate3d(0,-6px,0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.6) rotate(-8deg)}}
+.sp-title{font:800 30px/1.1 var(--display);letter-spacing:-.025em;margin-top:10px;animation:rise .6s .15s var(--spring) both}
+.sp-sub{color:var(--muted);font-size:14.5px;animation:rise .6s .22s var(--spring) both}
+.sp-card{width:100%;margin-top:14px;padding:10px 10px 14px;border-radius:22px;background:var(--glass-strong);border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi),0 30px 80px rgba(0,0,0,.3);position:relative;animation:rise .7s .3s var(--spring) both}
+.sp-card::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(150deg,var(--rim-a),var(--rim-b) 34%,transparent 60%,var(--rim-b) 85%,var(--rim-a));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.sp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.svc{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:13px;animation:rise .5s var(--spring) both}
+.svc:nth-child(1){animation-delay:.4s}.svc:nth-child(2){animation-delay:.46s}.svc:nth-child(3){animation-delay:.52s}.svc:nth-child(4){animation-delay:.58s}.svc:nth-child(5){animation-delay:.64s}
+.svc-ico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--sunk);color:var(--ink-2);flex:none;transition:background-color .3s,color .3s}
+.svc-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.svc-txt b{font-size:14px;font-weight:600}
+.svc-st{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svc-state{width:22px;height:22px;border-radius:50%;flex:none;position:relative;display:grid;place-items:center}
+.svc.run .svc-state{border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);animation:spin .8s linear infinite}
+.svc.ok .svc-state{background:var(--ok);animation:pop .35s var(--spring)}
+.svc.ok .svc-state::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.svc.ok .svc-ico{background:var(--ok-soft);color:var(--ok)}
+.svc.warn .svc-state,.svc.slow .svc-state{background:var(--warn);animation:pop .35s var(--spring)}
+.svc.warn .svc-state::after,.svc.slow .svc-state::after{content:"!";color:#1b1200;font:800 13px/1 var(--ui)}
+.svc.err .svc-state{background:var(--bad);animation:pop .35s var(--spring)}
+.svc.err .svc-state::after{content:"×";color:#fff;font:700 16px/1 var(--ui)}
+.svc.off .svc-state{border:2px dashed var(--line)}
+.svc.off{opacity:.65}
+.sp-bar{height:4px;border-radius:99px;background:var(--sunk);overflow:hidden;margin:8px 10px 0}
+.sp-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3));transform:scaleX(.06);transform-origin:left;transition:transform .6s var(--spring)}
+body.booting .app{opacity:0;transform:scale(.985);animation:appFallback 0s 22s forwards}
+body.app-in .app{opacity:1;transform:none;transition:opacity .6s ease,transform .7s var(--spring)}
+@keyframes appFallback{to{opacity:1;transform:none}}
+
+/* ---------- Logos ---------- */
+.brand svg{flex:none;filter:drop-shadow(0 6px 14px rgba(70,100,255,.35))}
+.t-av{background:none;box-shadow:none;width:34px;height:34px;padding:0;overflow:visible}
+.t-av svg.titan-logo{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 12px color-mix(in srgb,var(--ai1) 45%,transparent))}
+.t-welcome .t-av{width:64px;height:64px}
+.t-msg .t-av{width:30px;height:30px}
+.t-av.sm{width:30px;height:30px}
+.titan-logo .tl-core{transform-origin:50% 50%}
+.t-busy .titan-logo .tl-core,.typing .titan-logo .tl-core{animation:orb 1.6s ease-in-out infinite}
+@keyframes orb{50%{transform:scale(.86) rotate(45deg)}}
+
+/* ---------- Effets réduits ---------- */
+:root[data-fx="leger"] #ambient i{animation:none}
+:root[data-fx="aucun"] #ambient{display:none}
+:root[data-fx="aucun"] *,:root[data-fx="aucun"] *::before,:root[data-fx="aucun"] *::after{animation:none!important;transition:none!important}
+:root[data-fx="aucun"] body.booting .app{opacity:1;transform:none}
+:root[data-fx="aucun"] .btn:hover,:root[data-fx="aucun"] .ticket:hover{transform:none}
+@media (prefers-reduced-motion:reduce){#ambient i,.sp-ambient i,.sp-logo{animation:none!important}.page.enter>*{animation:none!important}}
+

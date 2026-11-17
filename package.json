@@ -1,0 +1,13 @@
+{
+  "name": "mon-carnet",
+  "version": "4.0.1",
+  "description": "Rendez-vous, clients, cours, conduite et Titan AI",
+  "main": "main.js",
+  "author": "Mon Carnet",
+  "license": "UNLICENSED",
+  "productName": "Mon Carnet",
+  "dependencies": {
+    "imapflow": "^1.0.171",
+    "pdf-parse": "1.1.1"
+  }
+}

@@ -1,0 +1,38 @@
+Mon Carnet 4.0.1
+================
+
+Installation
+1. Clic droit sur le zip > "Extraire tout...", puis lance "Mon Carnet.exe" dans le dossier "Mon Carnet".
+2. Au premier lancement, indique ton prenom et ce que tu veux suivre (ecole, permis, activite d'independant).
+3. Epingle l'appli a la barre des taches si tu veux.
+
+Tes donnees
+- Tout ce que tu saisis est enregistre dans Documents\Mon_Carnet\carnet.json,
+  avec une copie de secours par jour dans Documents\Mon_Carnet\sauvegardes (30 jours gardes).
+- Factures et pieces jointes : Documents\Mon_Carnet aussi.
+- Pour changer de PC : copie le dossier Documents\Mon_Carnet sur le nouveau PC avant de lancer l'appli.
+
+Mises a jour
+- Automatiques : au lancement, l'appli telecharge la nouvelle version et propose "Redemarrer le carnet"
+  (seule l'appli redemarre, pas l'ordinateur). Suivi et journal : Reglages > Mises a jour.
+
+Titan, l'assistant
+- Ajoute au moins une cle gratuite dans Reglages > Titan AI : Gemini (aistudio.google.com/apikey, conseille),
+  Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
+- Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
+- Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.0.1
+- Carte "Premiers pas" sur la page Aujourd'hui : emploi du temps, mails de l'ecole, Sarool, cle d'IA, profil pro.
+- Date de debut d'activite choisie par chacun (echeances Urssaf et etapes de lancement calculees).
+
+Nouveautes 4.0
+- L'appli s'appelle maintenant "Mon Carnet" et peut servir a n'importe qui : accueil au premier lancement
+  (prenom, ecole, permis, activite), pages affichees selon ce que tu suis (Reglages > Ton profil).
+- Donnees dans Documents\Mon_Carnet (les anciennes donnees sont recopiees automatiquement, rien n'est perdu).
+- Titan plus fiable : attend tout seul quand une IA demande de patienter, met de cote une IA dont le quota du jour
+  est atteint, reessaie en cas de coupure, et explique precisement ce qui bloque. Journal des incidents dans les Reglages.
+
+Nouveautes 3.7
+- Titan connait toute l'application, memoire, personnalisation (Bref / Detaille / Coach), suivi des jetons.
+- Mises a jour avec suivi (etapes, progression, journal) et installation fiable.
