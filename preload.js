@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('carnet', {
   onAiDelta: (fn) => ipcRenderer.on('ai:delta', (_e, x) => fn(x)),
   aiSetKey: (k, id) => ipcRenderer.invoke('ai:setKey', k, id),
   aiUsage: () => ipcRenderer.invoke('ai:usage'),
+  aiSetOrder: (order, auto) => ipcRenderer.invoke('ai:setOrder', order, auto),
+  aiBench: () => ipcRenderer.invoke('ai:bench'),
   aiResetUsage: () => ipcRenderer.invoke('ai:resetUsage'),
   aiKeyInfo: () => ipcRenderer.invoke('ai:keyInfo'),
   aiPing: () => ipcRenderer.invoke('ai:ping'),

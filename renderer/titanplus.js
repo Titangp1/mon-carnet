@@ -118,3 +118,32 @@ ACTS["memo-del"]=function(t){var m=titanMemo().slice();m.splice(Number(t.getAttr
 ACTS["memo-clear"]=function(){putSettings({titanMemo:[]});toast("Mémoire de Titan effacée");};
 ACTS["tu-refresh"]=function(){loadUsage(true);};
 ACTS["tu-reset"]=function(){if(!fileApi||!fileApi.aiResetUsage)return;fileApi.aiResetUsage().then(function(){toast("Compteur remis à zéro");loadUsage(true);});};
+
+/* ---------- Ordre de priorité des IA ---------- */
+var IA_INFO={gemini:"Google · gros quota gratuit, très fiable",groq:"très rapide · limites par minute serrées · messages vocaux",cerebras:"le plus rapide · quota quotidien généreux"};
+function iaOrderSection(){
+  if(!fileApi||!fileApi.aiSetOrder)return "";
+  loadUsage(false);var u=TU.data;
+  var h='<section class="set-section" aria-labelledby="s-iaord"><h2 class="sec" id="s-iaord">Ordre des IA</h2><p class="hint">Titan envoie chaque question à la première IA de la liste (avec une clé). Si elle est saturée ou en panne, il passe tout seul à la suivante.</p>';
+  if(!u)return h+'<p class="hint">Chargement…</p></section>';
+  var names={},has={};u.providers.forEach(function(p){names[p.id]=p.name;has[p.id]=p.has;});
+  var sp=u.speed||{},bench={};((u.bench&&u.bench.results)||[]).forEach(function(b){bench[b.id]=b;});
+  var order=(u.order||[]).slice();
+  if(u.auto)order.sort(function(a,b){return ((sp[a]&&sp[a].avg)||1e9)-((sp[b]&&sp[b].avg)||1e9);});
+  h+='<div class="toggle"><div><b>Ordre automatique</b><small>La plus rapide mesurée en premier (d\'après tes vraies questions et le test).</small></div><input type="checkbox" class="switch" data-act="ia-auto"'+(u.auto?" checked":"")+' aria-label="Ordre automatique"></div>';
+  h+='<ol class="ia-order">'+order.map(function(id,i){var s=sp[id],b=bench[id];
+    var spd=s&&s.avg?'<span class="chip plain num">~'+(s.avg/1000).toFixed(1).replace(".",",")+' s / réponse</span>':'';
+    var bt=b?(b.ok?'<span class="chip '+(b.correct?"fait":"plain")+' num">Test : '+(b.ms/1000).toFixed(1).replace(".",",")+' s'+(b.correct?" ✓":"")+'</span>':'<span class="chip warn">Test : '+esc(b.why||"échec")+'</span>'):'';
+    return '<li class="'+(has[id]?"":"off")+'"><span class="ia-rank num">'+(i+1)+'</span><div class="grow"><b>'+esc(names[id]||id)+'</b><small>'+esc(has[id]?(IA_INFO[id]||""):"pas de clé : ignorée")+'</small></div>'+spd+bt+
+      (u.auto?'':'<button class="t-ic" type="button" data-act="ia-up" data-id="'+id+'"'+(i===0?" disabled":"")+' aria-label="Monter" title="Monter">'+icon("left")+'</button><button class="t-ic dn" type="button" data-act="ia-down" data-id="'+id+'"'+(i===order.length-1?" disabled":"")+' aria-label="Descendre" title="Descendre">'+icon("left")+'</button>')+'</li>';}).join("")+'</ol>';
+  h+='<div class="row"><button class="btn sm" type="button" data-act="ia-bench"'+(TU.benching?" disabled":"")+'>'+(TU.benching?'<span class="spin"></span>Test en cours…':icon("zap")+'Tester la vitesse des IA')+'</button>'+(u.bench?'<span class="hint">Dernier test '+esc(relTime(u.bench.at))+'</span>':'')+'</div></section>';
+  return h;
+}
+function iaSave(order,auto){if(!TU.data)return;TU.data.order=order;TU.data.auto=auto;render();fileApi.aiSetOrder(order,auto).then(function(){loadUsage(true);});}
+function iaMove(id,dir){var o=(TU.data.order||[]).slice(),i=o.indexOf(id),j=i+dir;if(i<0||j<0||j>=o.length)return;o[i]=o[j];o[j]=id;iaSave(o,false);}
+ACTS["ia-up"]=function(t){iaMove(t.getAttribute("data-id"),-1);};
+ACTS["ia-down"]=function(t){iaMove(t.getAttribute("data-id"),1);};
+ACTS["ia-auto"]=function(t){iaSave((TU.data&&TU.data.order)||[],!!t.checked);};
+ACTS["ia-bench"]=function(){if(TU.benching)return;TU.benching=true;render();toast("Test de vitesse : une petite question à chaque IA…");
+  fileApi.aiBench().then(function(b){TU.benching=false;loadUsage(true);var ok=(b.results||[]).filter(function(x){return x.ok&&x.correct;}).sort(function(a,c){return a.ms-c.ms;});
+    toast(ok.length?"La plus rapide : "+ok[0].name+" ("+(ok[0].ms/1000).toFixed(1).replace(".",",")+" s)":"Aucune IA n'a répondu correctement");},function(){TU.benching=false;render();});};

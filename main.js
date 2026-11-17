@@ -184,6 +184,8 @@ ipcMain.handle('ai:chat', (e, payload) => {
 });
 ipcMain.handle('ai:setKey', (_e, k, id) => ai.setKey(k, id));
 ipcMain.handle('ai:usage', () => ai.usage());
+ipcMain.handle('ai:setOrder', (_e, order, auto) => ai.setOrder(order, auto));
+ipcMain.handle('ai:bench', () => ai.bench());
 ipcMain.handle('ai:resetUsage', () => ai.resetUsage());
 ipcMain.handle('ai:keyInfo', () => ai.keyInfo());
 ipcMain.handle('ai:ping', () => ai.ping());

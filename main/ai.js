@@ -173,8 +173,9 @@ function loadUsage() {
   return usageData;
 }
 let usageTimer = null;
-function record(p, model, u, messages, msg) {
+function record(p, model, u, messages, msg, ms) {
   const d = loadUsage(), now = new Date();
+  if (ms > 0) { const sp = (d.speed = d.speed || {})[p.id] || { n: 0, avg: 0 }; sp.avg = sp.n < 8 ? (sp.avg * sp.n + ms) / (sp.n + 1) : sp.avg * 0.8 + ms * 0.2; sp.n++; sp.at = Date.now(); d.speed[p.id] = sp; }
   const day = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   const inT = Number(u && (u.prompt_tokens || u.input_tokens)) || estTokens(messages);
   const outT = Number(u && (u.completion_tokens || u.output_tokens)) || estTokens(msg);
@@ -185,6 +186,41 @@ function record(p, model, u, messages, msg) {
   clearTimeout(usageTimer);
   usageTimer = setTimeout(() => { try { fs.writeFileSync(usageFile(), JSON.stringify(d)); } catch (e2) { /* disque plein ? */ } }, 500);
 }
+/* ---------- Ordre de priorité des IA ---------- */
+const orderFile = () => path.join(app.getPath('userData'), 'titan-ordre.json');
+const DEFAULT_ORDER = ['gemini', 'cerebras', 'groq'];
+function getOrder() {
+  let o = null; try { o = JSON.parse(fs.readFileSync(orderFile(), 'utf8')); } catch (e) { /* défaut */ }
+  const order = (o && Array.isArray(o.order) ? o.order : []).filter((id) => prov(id));
+  PROVIDERS.forEach((p) => { if (!order.includes(p.id)) order.push(p.id); });
+  return { order: o && Array.isArray(o.order) ? order : DEFAULT_ORDER.slice(), auto: !!(o && o.auto) };
+}
+function setOrder(order, auto) {
+  try { fs.writeFileSync(orderFile(), JSON.stringify({ order: (order || []).filter((id) => prov(id)), auto: !!auto })); return true; } catch (e) { return false; }
+}
+/* Ordre choisi, ou « automatique » : la plus rapide mesurée d'abord */
+function sortByPriority(list) {
+  const o = getOrder(), sp = loadUsage().speed || {};
+  const rank = (p) => o.order.indexOf(p.id);
+  if (o.auto) return list.slice().sort((a, b) => ((sp[a.id] && sp[a.id].avg) || 1e9) - ((sp[b.id] && sp[b.id].avg) || 1e9) || rank(a) - rank(b));
+  return list.slice().sort((a, b) => rank(a) - rank(b));
+}
+/* Test de vitesse : même petite question à chaque IA, on mesure le temps et on vérifie la réponse */
+async function bench() {
+  const out = [];
+  for (const p of withKeys()) {
+    const t0 = Date.now();
+    let r;
+    try { r = await chatWith(p, [{ role: 'system', content: 'Réponds uniquement par le mot OK, sans rien d’autre.' }, { role: 'user', content: 'Test de vitesse' }], null, null); }
+    catch (e) { r = { error: 'network' }; }
+    const ms = Date.now() - t0, txt = r && r.ok ? String(r.message && r.message.content || '') : '';
+    out.push({ id: p.id, name: p.name, ok: !!(r && r.ok), correct: /\bok\b/i.test(txt), ms, model: C(p).model || '', why: r && !r.ok ? (r.why || r.error || '') : '' });
+  }
+  const d = loadUsage(); d.bench = { at: Date.now(), results: out };
+  try { fs.writeFileSync(usageFile(), JSON.stringify(d)); } catch (e) { /* rien */ }
+  return d.bench;
+}
+
 /* Incidents récents (affichés dans Réglages pour comprendre un échec) */
 function incident(p, model, kind, detail) {
   const d = loadUsage();
@@ -192,7 +228,7 @@ function incident(p, model, kind, detail) {
   clearTimeout(usageTimer);
   usageTimer = setTimeout(() => { try { fs.writeFileSync(usageFile(), JSON.stringify(d)); } catch (e2) { /* rien */ } }, 500);
 }
-function usage() { const d = loadUsage(); return { since: d.since, days: d.days, last: d.last || null, errors: (d.errors || []).slice().reverse(), blocked: Object.keys(blocked).filter((k) => blocked[k] > Date.now()).map((k) => ({ id: k, until: blocked[k] })), providers: PROVIDERS.map((p) => ({ id: p.id, name: p.name, has: !!getKey(p), model: C(p).model })) }; }
+function usage() { const d = loadUsage(), o = getOrder(); return { order: o.order, auto: o.auto, speed: d.speed || {}, bench: d.bench || null, since: d.since, days: d.days, last: d.last || null, errors: (d.errors || []).slice().reverse(), blocked: Object.keys(blocked).filter((k) => blocked[k] > Date.now()).map((k) => ({ id: k, until: blocked[k] })), providers: PROVIDERS.map((p) => ({ id: p.id, name: p.name, has: !!getKey(p), model: C(p).model })) }; }
 function resetUsage() { usageData = { since: Date.now(), days: {} }; try { fs.writeFileSync(usageFile(), JSON.stringify(usageData)); } catch (e) { return false; } return true; }
 
 /* Un fournisseur : renvoie {ok,...}, ou {next:true} pour passer au suivant */
@@ -212,6 +248,7 @@ async function chatWith(p, messages, tools, onDelta) {
     if (!noStream) body.stream = true;
     if (noReason) delete body.reasoning_effort; /* réfléchit moins = moins de jetons et plus rapide */
     let r;
+    const t0 = Date.now();
     try { r = await post(p, body, onDelta); }
     catch (e) {
       /* coupure réseau ou délai dépassé : un nouvel essai avant de passer à l'IA suivante */
@@ -223,7 +260,7 @@ async function chatWith(p, messages, tools, onDelta) {
       const msg = r.json.choices[0].message || {};
       delete msg.reasoning; delete msg.reasoning_content;
       if (msg.content == null && !(msg.tool_calls && msg.tool_calls.length)) msg.content = '';
-      record(p, c.model, r.json.usage, messages, msg);
+      record(p, c.model, r.json.usage, messages, msg, Date.now() - t0);
       return { ok: true, message: msg, provider: p.id, model: p.name + ' · ' + c.model, usage: r.json.usage || null };
     }
     const err = (r.json && r.json.error) || {};
@@ -276,7 +313,8 @@ async function chat(payload, onDelta) {
   const messages = (payload && payload.messages) || [];
   const tools = payload && payload.tools;
   /* les IA bloquées passent en dernier (au cas où le blocage serait levé) */
-  let order = list.filter((p) => !isBlocked(p)).concat(list.filter(isBlocked));
+  let order = sortByPriority(list);
+  order = order.filter((p) => !isBlocked(p)).concat(order.filter(isBlocked));
   /* pendant une même question, on garde l'IA qui a déjà commencé à répondre */
   const pref = payload && payload.prefer && order.find((p) => p.id === payload.prefer);
   if (pref) order = [pref].concat(order.filter((p) => p !== pref));
@@ -332,4 +370,4 @@ async function transcribe(data, mime) {
   return { ok: false, error: 'api' };
 }
 
-module.exports = { chat, setKey, keyInfo, ping, transcribe, usage, resetUsage };
+module.exports = { chat, setKey, keyInfo, ping, transcribe, usage, resetUsage, setOrder, bench };

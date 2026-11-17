@@ -1,4 +1,4 @@
-Mon Carnet 4.1.0
+Mon Carnet 4.2.0
 ================
 
 Installation
@@ -21,6 +21,11 @@ Titan, l'assistant
   Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
 - Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
 - Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.2.0
+- Ordre des IA (Reglages > Ordre des IA) : choisis laquelle passe en premier, ou ordre automatique (la plus rapide d'abord).
+- Bouton "Tester la vitesse des IA" : meme question a chaque IA, temps de reponse et verification.
+- Page Titan realignee : liste des conversations a gauche, fil et zone de saisie centres.
 
 Nouveautes 4.1.0
 - Titan : historique des conversations a gauche (Aujourd'hui, Hier, 7 derniers jours...), nouvelle conversation, suppression.

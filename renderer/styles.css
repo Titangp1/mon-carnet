@@ -800,3 +800,33 @@ table.data tfoot td{font-weight:700;border-top:1px solid var(--line);border-bott
 .t-caret{display:inline-block;width:7px;height:1em;margin-left:2px;vertical-align:-2px;background:currentColor;opacity:.6;animation:tcblink 1s steps(2) infinite}
 @keyframes tcblink{50%{opacity:0}}
 @media (max-width:900px){.titan-page.with-side{grid-template-columns:1fr}.tc-side{position:static;max-height:220px}}
+
+/* Titan : mise en page alignée (liste à gauche, fil centré, saisie à la même largeur) */
+.page:has(> .titan-page.with-side),.page:has(.titan-page.with-side){max-width:none}
+#main:has(.titan-page.with-side){padding:18px 22px 18px}
+.titan-page.with-side{grid-template-columns:272px minmax(0,1fr);gap:0;height:calc(100vh - 110px)}
+.tc-side{padding:14px 12px;margin-right:26px;border-radius:18px;background:color-mix(in srgb,var(--panel) 70%,transparent);border:1px solid var(--line)}
+.tc-new{width:100%}
+.tc-group{margin:14px 8px 6px}
+.tc-open{padding:8px 10px}
+.tc-main{max-width:880px;width:100%;margin:0 auto;padding-top:4px}
+.tc-main .page-head{margin-bottom:4px}
+.tc-main .page-head h1{font-size:clamp(1.6rem,2.4vw,2.2rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.tc-main .t-thread{gap:22px;padding:8px 4px 16px}
+.t-msg .t-col{max-width:min(720px,86%)}
+.t-msg.ai .t-col{flex:1}
+.t-msg .t-col .t-bubble{max-width:100%}
+.t-msg.ai .t-foot{padding-left:2px}
+.t-msg.me .t-foot{justify-content:flex-end}
+.t-foot{margin-top:6px}
+.tc-main .t-compose{margin-top:6px}
+
+/* Ordre des IA */
+.ia-order{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.ia-order li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(127,127,127,.07)}
+.ia-order li.off{opacity:.5}
+.ia-order .grow{display:flex;flex-direction:column;gap:2px}.ia-order small{opacity:.7}
+.ia-rank{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700}
+.ia-order .t-ic .ico{transform:rotate(90deg)}.ia-order .t-ic.dn .ico{transform:rotate(-90deg)}
+.ia-order .t-ic[disabled]{opacity:.2;cursor:default}
+.tc-list{overflow-x:hidden;overflow-y:auto}.tc-item{min-width:0}.tc-open{overflow:hidden}
