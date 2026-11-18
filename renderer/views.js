@@ -443,7 +443,7 @@ function viewReglages(){
     '<div class="toggle"><div><b>Réservation automatique des leçons</b><small>'+(s.autoOn?"Activée":"Désactivée")+' · '+esc(s.moniteurPref?s.moniteurPref+" en priorité":"tous les moniteurs")+', '+hDur(capMin())+' max par semaine. <button class="linklike" type="button" data-act="permis-rules">Modifier les règles</button></small></div><input type="checkbox" class="switch" data-set="autoOn" data-type="bool"'+(s.autoOn?" checked":"")+' aria-label="Réservation automatique"></div>'+
     setToggle("saroolShow","Montrer la fenêtre Sarool pendant les vérifications","Pour dépanner : tu vois le carnet travailler sur le site.")+
     '<div class="row"><button class="btn ghost sm" type="button" data-act="sarool-journal">'+icon("file")+'Journal technique Sarool</button></div></section>';
-  h+=profileSection()+mailS+titanS+iaOrderSection()+titanPersoSection()+usageSection()+bgS+proS;
+  h+=profileSection()+mailS+titanS+voixSection()+iaOrderSection()+titanPersoSection()+usageSection()+bgS+proS;
   h+='<section class="set-section" aria-labelledby="s-cot"><h2 class="sec" id="s-cot">Cotisations et crédit d\'impôt</h2>'+
     '<div class="toggle"><div><b>ACRE obtenue</b><small>Estime tes cotisations à 15,9 % au lieu de 21,2 % (plus environ 0,8 % de taxes chambre et formation).</small></div><input type="checkbox" class="switch" id="set-acre"'+(s.acre?" checked":"")+' aria-label="ACRE obtenue"></div>'+
     '<div class="toggle"><div><b>Déclaré services à la personne (NOVA)</b><small>Ajoute le crédit d\'impôt aux messages de confirmation et aux factures. À activer seulement avec ton récépissé NOVA.</small></div><input type="checkbox" class="switch" id="set-nova"'+(s.nova?" checked":"")+' aria-label="Déclaré services à la personne"></div>'+

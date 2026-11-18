@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('carnet', {
   aiKeyInfo: () => ipcRenderer.invoke('ai:keyInfo'),
   aiPing: () => ipcRenderer.invoke('ai:ping'),
   aiTranscribe: (data, mime) => ipcRenderer.invoke('ai:transcribe', data, mime),
+  aiTts: (text, voice, style) => ipcRenderer.invoke('ai:tts', text, voice, style),
   setPrefs: (p) => ipcRenderer.invoke('app:prefs', p),
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateState: () => ipcRenderer.invoke('update:state'),

@@ -190,6 +190,7 @@ ipcMain.handle('ai:resetUsage', () => ai.resetUsage());
 ipcMain.handle('ai:keyInfo', () => ai.keyInfo());
 ipcMain.handle('ai:ping', () => ai.ping());
 ipcMain.handle('ai:transcribe', (_e, data, mime) => ai.transcribe(data, mime));
+ipcMain.handle('ai:tts', (_e, text, voice, style) => ai.tts(text, voice, style));
 
 /* Factures PDF : rendu dans une fenêtre cachée, sans JavaScript */
 ipcMain.handle('carnet:invoiceFiles', () => { try { return fs.existsSync(invoicesDir()) ? fs.readdirSync(invoicesDir()).filter((f) => /^F-\d{4}-\d+\.pdf$/i.test(f)) : []; } catch (e) { return []; } });

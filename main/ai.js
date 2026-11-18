@@ -370,4 +370,11 @@ async function transcribe(data, mime) {
   return { ok: false, error: 'api' };
 }
 
-module.exports = { chat, setKey, keyInfo, ping, transcribe, usage, resetUsage, setOrder, bench };
+/* Voix naturelle (Gemini) */
+const ttsMod = require('./tts');
+async function tts(text, voice, style) {
+  const r = await ttsMod.speakText(getKey(prov('gemini')), text, voice, style);
+  if (!r.ok && r.error !== 'nokey' && r.error !== 'empty') incident(prov('gemini'), r.model || 'voix', 'voix naturelle : ' + r.error, r.detail || '');
+  return r;
+}
+module.exports = { chat, setKey, keyInfo, ping, transcribe, usage, resetUsage, setOrder, bench, tts };

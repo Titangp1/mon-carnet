@@ -1,4 +1,4 @@
-Mon Carnet 4.3.0
+Mon Carnet 4.4.0
 ================
 
 Installation
@@ -21,6 +21,10 @@ Titan, l'assistant
   Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
 - Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
 - Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.4.0
+- Voix naturelle pour Titan (voix humaines de Google, avec la cle Gemini) : Reglages > Voix de Titan pour choisir et ecouter.
+  La voix de Windows reste en secours.
 
 Nouveautes 4.3.0
 - Agenda : bouton "Synchroniser" (emploi du temps, conduite, mails). Synchro automatique quand tu reviens sur l'appli, agenda Sarool relu toutes les 5 min.

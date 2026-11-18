@@ -41,7 +41,7 @@ var DEFAULT_SETTINGS={prenom:"",ecole:"",autoEcole:"",modEcole:true,modConduite:
   /* Appli */
   background:true,autostart:false,effets:"complet",fxAuto:false,
   /* Voix et brief du matin */
-  voixLecture:"vocal",voixAuto:true,briefOn:true,briefHeure:"07:30"};
+  voixLecture:"vocal",voixNat:true,voixNom:"Kore",voixAuto:true,briefOn:true,briefHeure:"07:30"};
 var ACTS={}; /* actions des modules (data-act) */
 
 /* Icônes (traits façon Lucide) */
