@@ -150,7 +150,7 @@ function bookSlot(s,auto){
 function initConduite(){
   if(!fileApi||!fileApi.saroolAgenda)return;
   setTimeout(function(){permisCycle(false);},15000);
-  setInterval(function(){permisCycle(false);},15*60*1000);
+  setInterval(function(){permisCycle(false);},5*60*1000);
 }
 
 /* ---------- Page Conduite ---------- */

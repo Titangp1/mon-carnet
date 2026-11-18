@@ -238,7 +238,7 @@ function viewAgenda(){
   else{var s=startOfWeek(a),e=addDays(s,6);title=s.getMonth()===e.getMonth()?"Du "+s.getDate()+" au "+fDM.format(e):"Du "+fDM.format(s)+" au "+fDM.format(e);}
   var h='<header class="agenda-head"><h1 tabindex="-1">'+esc(title)+'</h1>'+
     '<span class="seg" role="group" aria-label="Vue">'+[["jour","Jour"],["semaine","Semaine"],["mois","Mois"]].map(function(o){return '<button type="button" data-act="agenda-mode" data-mode="'+o[0]+'" aria-pressed="'+(mode===o[0])+'">'+o[1]+'</button>';}).join("")+'</span>'+
-    '<span class="navgroup"><button class="btn icon" type="button" data-act="agenda-nav" data-dir="-1" aria-label="Période précédente">'+icon("left")+'</button><button class="btn" type="button" data-act="agenda-nav" data-dir="0">Aujourd\'hui</button><button class="btn icon" type="button" data-act="agenda-nav" data-dir="1" aria-label="Période suivante">'+icon("right")+'</button></span></header>';
+    syncBtn()+'<span class="navgroup"><button class="btn icon" type="button" data-act="agenda-nav" data-dir="-1" aria-label="Période précédente">'+icon("left")+'</button><button class="btn" type="button" data-act="agenda-nav" data-dir="0">Aujourd\'hui</button><button class="btn icon" type="button" data-act="agenda-nav" data-dir="1" aria-label="Période suivante">'+icon("right")+'</button></span></header>';
   if(mode==="mois")return h+monthGrid(a)+'<p class="hint">Clique sur un jour pour l\'ouvrir.</p>';
   h+=timeGrid(agendaDays());
   h+='<div class="legend"><span><i class="l-prevu"></i>Prévu</span><span><i class="l-fait"></i>À encaisser</span><span><i class="l-paye"></i>Payé</span><span><i class="l-cours"></i>Cours</span><span><i class="l-permis"></i>Conduite</span><span><i class="l-evt"></i>Événements perso</span>'+

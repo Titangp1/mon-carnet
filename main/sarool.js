@@ -56,6 +56,7 @@ return {start:v(c.startDate).slice(0,10),days:c.days||7,events:c.events.list.map
 return {id:String(e.id||''),start:v(e.start),end:v(e.end),text:String(e.text||''),menu:String(e.contextMenu||''),css:String(e.cssClass||''),tag:t.map(String),bubble:String(e.bubbleHtml||'')};})};})()`;
 
 function classify(e) {
+  if (/simul/i.test(e.text + ' ' + (e.tag || []).join(' ') + ' ' + e.bubble) && !/EventDispo/i.test(e.menu) && !/^A\d/.test(e.id)) return 'mine';
   if (/eleve/i.test(e.css) || /EventEleve/i.test(e.menu) || /^E\d/.test(e.id)) return 'mine';
   if (/EventDispo/i.test(e.menu) || /^A\d/.test(e.id)) return 'dispo';
   return 'other';
@@ -213,6 +214,7 @@ function readPlanning() {
       await w.loadURL(PLANNING);
       if (isLogin(w.webContents.getURL())) return { ok: false, error: 'login' };
       const rows = await js(w, `Array.from(document.querySelectorAll('table tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim())).filter(r => r.length >= 3)`);
+      log('planning lu', rows.length + ' lignes', JSON.stringify(rows.slice(0, 40)).slice(0, 4000));
       return { ok: true, rows, at: Date.now() };
     } catch (err) { return { ok: false, error: 'network' }; }
     finally { w.destroy(); }

@@ -234,8 +234,13 @@ function parseICS(text){
     res.push({uid:String(e.uid||idx),titre:e.titre||"Cours",lieu:e.lieu||"",desc:e.desc||"",date:keyOf(e.start),heure:pad(e.start.getHours())+":"+pad(e.start.getMinutes()),duree:Math.max(15,Math.round((end-e.start)/60000)),allDay:false});});
   var cancelled=res.cancelled;res=res.sort(function(a,b){return (a.date+(a.heure||"")).localeCompare(b.date+(b.heure||""));});res.cancelled=cancelled;return res;
 }
-function parseSarool(rows){var out=[];(rows||[]).forEach(function(r,i){var m=/(\d{2})\/(\d{2})\/(\d{2,4})/.exec(r[0]||""),h=/(\d{1,2})\s*h\s*(\d{2})?/i.exec(r[1]||"");if(!m||!h)return;var y=+m[3];if(y<100)y+=2000;
-  out.push({uid:"permis-"+y+m[2]+m[1]+"-"+h[1]+(h[2]||"00"),kind:"permis",titre:(r[4]||"Leçon de conduite").trim(),lieu:r[3]?"Moniteur : "+r[3]:"",desc:"Auto-école (Sarool)",date:y+"-"+m[2]+"-"+m[1],heure:pad(+h[1])+":"+(h[2]||"00"),duree:Math.max(15,parseInt(r[2],10)||60),allDay:false});});return out;}
+function sarDur(s){s=String(s||"");var a=/(\d{1,2})\s*h\s*(\d{2})?/i.exec(s);if(a)return (+a[1])*60+(+(a[2]||0));var b=/(\d{1,3})\s*(min|mn)/i.exec(s);if(b)return +b[1];var c=parseInt(s,10);return c>0?(c<=8?c*60:c):0;}
+function parseSarool(rows){var out=[];(rows||[]).forEach(function(r){r=(r||[]).map(function(x){return String(x||"").trim();});var all=r.join(" | ");
+  var m=/(\d{2})\/(\d{2})\/(\d{2,4})/.exec(r[0]||"")||/(\d{2})\/(\d{2})\/(\d{2,4})/.exec(all);
+  var h=/(\d{1,2})\s*[h:]\s*(\d{2})?/i.exec(r[1]||"")||/\b(\d{1,2})\s*[h:]\s*(\d{2})\b/i.exec(all.replace(m?m[0]:"",""));if(!m||!h)return;var y=+m[3];if(y<100)y+=2000;
+  var simu=/simul/i.test(all),titre=(r[4]||"").trim()||(simu?"Leçon sur simulateur":"Leçon de conduite");if(simu&&!/simul/i.test(titre))titre+=" (simulateur)";
+  var dur=sarDur(r[2])||((all.match(/\b\d{1,2}\s*h\s*\d{0,2}\b|\b\d{2,3}\s*min/gi)||[]).slice(1).map(sarDur).filter(Boolean)[0])||60;
+  out.push({uid:"permis-"+y+m[2]+m[1]+"-"+h[1]+(h[2]||"00"),kind:"permis",simu:simu,titre:titre,lieu:r[3]?"Moniteur : "+r[3]:"",desc:"Auto-école (Sarool)"+(simu?" · simulateur":""),date:y+"-"+m[2]+"-"+m[1],heure:pad(+h[1])+":"+(h[2]||"00"),duree:Math.max(15,dur),allDay:false});});return out;}
 var permis=[];try{permis=JSON.parse(localStorage.getItem("carnet-permis")||"[]");}catch(e){}
 S.permisAt=null;S.permisErr=null;S.permisBusy=false;try{S.permisAt=Number(localStorage.getItem("carnet-permis-at"))||null;}catch(e){}
 function syncPermis(manual){if(!fileApi||!fileApi.saroolFetch||!S.settings.saroolOn)return Promise.resolve({ok:false,error:"off"});S.permisBusy=true;renderSoon();
