@@ -1,4 +1,4 @@
-Mon Carnet 4.4.0
+Mon Carnet 4.5.0
 ================
 
 Installation
@@ -21,6 +21,10 @@ Titan, l'assistant
   Groq (console.groq.com/keys, necessaire pour les messages vocaux) ou Cerebras.
 - Avec plusieurs cles, Titan passe tout seul a une autre IA quand l'une est saturee.
 - Reglages > Utilisation de Titan : jetons consommes et incidents recents (pour comprendre une erreur).
+
+Nouveautes 4.5.0
+- Version Android (fichier Mon-Carnet-Android.apk sur la page des versions GitHub) : tout le carnet sur le telephone,
+  independant du PC (emploi du temps, agenda, taches, conduite, clients, finances, Titan avec voix).
 
 Nouveautes 4.4.0
 - Voix naturelle pour Titan (voix humaines de Google, avec la cle Gemini) : Reglages > Voix de Titan pour choisir et ecouter.

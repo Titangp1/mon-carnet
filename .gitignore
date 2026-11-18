@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.zip
 *.7z
+www/
+android/
+.claude/

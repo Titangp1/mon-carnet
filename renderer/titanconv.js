@@ -87,7 +87,7 @@ function tcList(){
   return '<aside class="tc-side" aria-label="Conversations"><button class="btn primary sm tc-new" type="button" data-act="titan-new">'+icon("plus")+'Nouvelle conversation</button><div class="tc-list">'+out+'</div></aside>';
 }
 viewTitan=function(){
-  return '<div class="titan-page with-side">'+tcList()+'<div class="tc-main"><header class="page-head"><div><p class="eyebrow">'+icon("sparkle")+'Assistant intégré</p><h1 tabindex="-1">'+esc(tcCur()&&tcCur().msgs.length?tcTitle(tcCur()):"Titan AI")+'</h1></div>'+
+  return '<div class="titan-page with-side">'+tcList()+'<div class="tc-main"><div class="tc-mobile"><select aria-label="Conversation" onchange="tcOpen(this.value)">'+S.titan.convs.filter(function(c){return c.msgs.length||c.id===S.titan.cur;}).map(function(c){return '<option value="'+c.id+'"'+(c.id===S.titan.cur?" selected":"")+'>'+esc(tcTitle(c))+'</option>';}).join("")+'</select><button class="btn sm" type="button" data-act="titan-new">'+icon("plus")+'Nouvelle</button></div><header class="page-head"><div><p class="eyebrow">'+icon("sparkle")+'Assistant intégré</p><h1 tabindex="-1">'+esc(tcCur()&&tcCur().msgs.length?tcTitle(tcCur()):"Titan AI")+'</h1></div>'+
     '<div class="head-actions"><button class="btn ghost speak-stop" type="button" data-act="speak-stop"'+(typeof SPEAK!=="undefined"&&SPEAK.on?"":" hidden")+'>'+icon("volumeX")+'Arrêter la lecture</button></div></header>'+
     '<div class="t-thread" id="t-thread">'+titanThread()+'</div>'+titanComposer("")+'</div></div>';
 };

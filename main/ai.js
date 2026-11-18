@@ -245,7 +245,7 @@ async function chatWith(p, messages, tools, onDelta) {
     if (/gpt-oss/.test(c.model)) body.reasoning_effort = 'low';
     if (p.id === 'gemini' && /gemini-2\.5-flash$/.test(c.model)) body.reasoning_effort = 'none';
     else if (p.id === 'gemini' && /flash-latest|gemini-3/.test(c.model)) body.reasoning_effort = 'low';
-    if (!noStream) body.stream = true;
+    if (!noStream && !globalThis.CARNET_NO_STREAM) body.stream = true;
     if (noReason) delete body.reasoning_effort; /* réfléchit moins = moins de jetons et plus rapide */
     let r;
     const t0 = Date.now();

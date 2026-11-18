@@ -10,6 +10,10 @@ Application Windows d'organisation personnelle : agenda, emploi du temps de l'é
 
 Les mises à jour s'installent ensuite toutes seules (Réglages > Mises à jour).
 
+### Sur Android
+
+Télécharge `Mon-Carnet-Android.apk` dans la [dernière version](../../releases/latest) depuis ton téléphone, ouvre-le et autorise l'installation. L'appli téléphone est indépendante du PC : ses données restent sur le téléphone (Réglages > Tes données pour importer une sauvegarde du PC). Les mails de l'école et la connexion Sarool ne sont disponibles que sur PC.
+
 ## Fonctionnalités
 
 | | |

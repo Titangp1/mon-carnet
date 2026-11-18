@@ -1,0 +1,39 @@
+/* Mon Carnet (téléphone) : barre d'onglets en bas, contenu plein écran, zones tactiles confortables. */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:100dvh}
+  .work{grid-row:1;height:auto;min-height:0}
+  .top{padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;gap:6px}
+  #main{padding:14px 14px 24px}
+  /* barre d'onglets */
+  .rail{grid-row:2;height:auto!important;min-height:0!important;max-height:none!important;position:relative;top:auto;flex-direction:row;align-items:stretch;gap:0;padding:4px 4px calc(env(safe-area-inset-bottom) + 4px);border-right:0;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+  .rail::-webkit-scrollbar{display:none}
+  .rail .brand,.nav-group,.rail .sync,.nav-ind{display:none!important}
+  .rail .nav,.rail-foot{flex-direction:row;gap:0;margin:0;padding:0;border:0}
+  .rail #nav{flex:1;justify-content:space-around;height:auto}
+  .rail .nav,.rail .nav button{height:auto}
+  .work{height:100%!important}
+  .nav button{flex-direction:column;justify-content:center;gap:2px;min-width:58px;min-height:52px;padding:6px 4px;border-radius:12px;font-size:10.5px;text-align:center}
+  .nav button .label{display:block!important;flex:none;font-size:10.5px;line-height:1.1;max-width:64px}
+  .nav button .ico{width:21px;height:21px}
+  .nav .badge{position:absolute;top:2px;right:8px;display:inline-grid!important;min-width:16px;height:16px;font-size:10px;padding:0 4px}
+  .nav button[aria-current="page"]{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+  /* pages */
+  .page-head{flex-direction:column;align-items:stretch;gap:10px}
+  .page-head h1{font-size:1.7rem}
+  .head-actions{flex-wrap:wrap;gap:6px}
+  .grid2,.grid3{grid-template-columns:1fr!important}
+  .setup-list li{flex-wrap:wrap}.setup-list li .btn{margin-left:32px}
+  .modal,.sheet{max-width:100vw!important;width:100vw!important;border-radius:18px 18px 0 0!important}
+  .titan-page.with-side{grid-template-columns:1fr;height:auto}
+  .tc-side{display:none}
+  .tc-main .t-thread{min-height:50vh}
+  .t-msg .t-col{max-width:92%}
+  .titan-drawer{width:100vw!important;max-width:100vw!important;inset:0!important;border-radius:0!important}
+  .onb{padding:10px}.onb-card{padding:18px}
+  input,select,textarea{font-size:16px} /* évite le zoom automatique d'Android */
+  .vm-orb{width:180px;height:180px}.vm-core{width:124px;height:124px}
+}
+/* sur téléphone, la conversation se choisit dans une liste déroulante en haut */
+.tc-mobile{display:none}
+@media (max-width:760px){.tc-mobile{display:flex;gap:8px;align-items:center}.tc-mobile select{flex:1;min-width:0}}

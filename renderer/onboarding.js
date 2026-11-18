@@ -6,7 +6,7 @@ function openOnboarding(){
   if(document.getElementById("onb"))return;var st=S.settings;
   var el=document.createElement("div");el.id="onb";el.className="onb";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-labelledby","onb-h");
   el.innerHTML='<form class="onb-card glass" id="onb-form" novalidate autocomplete="off">'+
-    '<div class="onb-head"><svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true"><use href="#logo-app"/></svg><div><h1 id="onb-h">Bienvenue dans Mon Carnet</h1><p>Quelques infos pour préparer ton carnet. Tout reste sur ce PC, dans Documents\\Mon_Carnet. Tu pourras tout modifier dans Réglages.</p></div></div>'+
+    '<div class="onb-head"><svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true"><use href="#logo-app"/></svg><div><h1 id="onb-h">Bienvenue dans Mon Carnet</h1><p>Quelques infos pour préparer ton carnet. '+(fileApi&&fileApi.mobile?"Tout reste sur ce téléphone.":"Tout reste sur ce PC, dans Documents\\Mon_Carnet.")+' Tu pourras tout modifier dans Réglages.</p></div></div>'+
     '<div class="grid2">'+onbField("onb-prenom","Ton prénom",st.prenom,{req:true,ph:"Camille"})+onbField("onb-nom","Nom (facultatif)",st.proNom,{ph:"Camille Martin"})+'</div>'+
     '<p class="onb-q">Qu\'est-ce que tu veux suivre ?</p><div class="onb-mods">'+
       onbCheck("onb-ecole","École et cours","Emploi du temps, mails des profs, examens.",st.modEcole!==false)+
@@ -68,11 +68,11 @@ function setupSteps(){
   var st=S.settings,out=[];
   if(st.modEcole!==false){
     out.push({k:"edt",t:"Emploi du temps de l'école",d:"Colle le lien iCal / ICS donné par ton école.",ok:!!(st.icalUrl||"").trim(),act:"setup-edt",b:"Ajouter le lien"});
-    out.push({k:"mail",t:"Mails de l'école",d:"Relie ta boîte (Gmail ou Google Workspace de l'école) pour voir les mails des profs.",ok:!!(S.mail&&S.mail.account),act:"mail-connect",b:"Relier la boîte"});}
-  if(st.modConduite!==false)out.push({k:"sarool",t:"Auto-école (Sarool)",d:"Connecte ton compte Sarool pour voir tes leçons et réserver automatiquement.",ok:!!st.saroolOn,act:"sarool-login",b:"Se connecter"});
+    out.push({k:"mail",t:"Mails de l'école",d:"Relie ta boîte (Gmail ou Google Workspace de l'école) pour voir les mails des profs.",ok:!!(S.mail&&S.mail.account),act:"mail-connect",pcOnly:!(fileApi&&fileApi.mailStatus),b:"Relier la boîte"});}
+  if(st.modConduite!==false)out.push({k:"sarool",t:"Auto-école (Sarool)",d:"Connecte ton compte Sarool pour voir tes leçons et réserver automatiquement.",ok:!!st.saroolOn,act:"sarool-login",pcOnly:!(fileApi&&fileApi.saroolLogin),b:"Se connecter"});
   out.push({k:"ia",t:"Assistant Titan",d:"Ajoute une clé d'IA gratuite (Gemini conseillé, Groq pour les messages vocaux).",ok:!!(S.titanKey&&S.titanKey.custom),act:"setup-ia",b:"Ajouter une clé"});
   if(st.modPro!==false)out.push({k:"pro",t:"Profil professionnel",d:"SIRET, adresse et début d'activité pour tes factures.",ok:!!(st.siret&&st.proAdresse),act:"setup-pro",b:"Compléter"});
-  return out;
+  return out.filter(function(x){return !x.pcOnly;});
 }
 function setupCard(){
   if(S.settings.setupHidden||!S.settings.onboarded)return "";
